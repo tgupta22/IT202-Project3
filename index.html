@@ -1,255 +1,273 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
+
+<html lang = "en">
     
-    <body>
-  <canvas id="canvas" width="600" height="600"></canvas>
+    
+<head>>
+    
+    <meta charset="utf-8"/>
+
+  <body>
+<canvas id="canvas" width="600" height="400" tabindex="1"></canvas>
 
 <style>
+                                                         
+  body {
     
-/*         
-    
-body {
-  background-image: url('Space.jpg');
-} */
-body {
-    
-  background-image: url('Space.jpg');
-  padding:0;
-  margin:0;
- 
-}
-canvas {
+ background-image: url('Space.jpg');                                                         
+    }
+  canvas {
   display:block;
   margin:30px auto 0;
   border:1px dashed #ccc;
  background-image: url('Space.jpg');
 }
-</style>
-<script>
     
- var background = new Image();
-background.src = "Space.jpg";
-var canvas,
-    ctx,
-    lives = 0,
-    health = 0,
-    level = 1,
-    score = 0,
-    width = 600,
-    height = 600,
-    enemyTotal = 5,
-    enemies = [],
-    enemy_x = 50,
-    enemy_y = -45,
-    enemy_w = 50,
-    enemy_h = 50,
-    speed = 3,
-    rightKey = false,
-    leftKey = false,
-    upKey = false,
-    downKey = false,
-    ship_x = (width / 2) - 25, ship_y = height - 75, ship_w = 50, ship_h = 50;
+ </style>
 
-    function draw()
-    {
-        ctx.drawImage(background, 0, 0);
-        
-        window.requestAnimationFrame(draw);
-    }
+    <script> 
     
+    // Arcade Shooter game
+
+// Get a reference to the canvas DOM element
+var canvas = document.getElementById('canvas');
+// Get the canvas drawing context
+var context = canvas.getContext('2d');
+
+// Create an object representing a square on the canvas
+function makeSquare(x, y, length, speed) {
+  return {
+    x: x,
+    y: y,
+    l: length,
+    s: speed,
+    draw: function() {
+      context.fillRect(this.x, this.y, this.l, this.l);
+    }
+  };
+}
+
+// The player the user controls
+var player = makeSquare(50, canvas.height / 2 - 25, 50, 5);
+
+// Flags to tracked which keys are pressed
+var up = false;
+var down = false;
+var space = false;
+
+// Is a bullet already on the canvas?
+var shooting = false;
+// The bulled shot from the player
+var bullet = makeSquare(0, 0, 10, 10);
+
+// An array for enemies (in case there are more than one)
+var enemies = [];
+
+// Add an enemy object to the array
+var enemyBaseSpeed = 2;
+function makeEnemy() {
+  var enemyX = canvas.width;
+  var enemySize = Math.round((Math.random() * 15)) + 15;
+  var enemyY = Math.round(Math.random() * (canvas.height - enemySize * 2)) + enemySize;
+  var enemySpeed = Math.round(Math.random() * enemyBaseSpeed) + enemyBaseSpeed;
+  enemies.push(makeSquare(enemyX, enemyY, enemySize, enemySpeed));
+}
+
+// Check if number a is in the range b to c (exclusive)
+function isWithin(a, b, c) {
+  return (a > b && a < c);
+}
+
+// Return true if two squares a and b are colliding, false otherwise
+function isColliding(a, b) {
+  var result = false;
+  if (isWithin(a.x, b.x, b.x + b.l) || isWithin(a.x + a.l, b.x, b.x + b.l)) {
+    if (isWithin(a.y, b.y, b.y + b.l) || isWithin(a.y + a.l, b.y, b.y + b.l)) {
+      result = true;
+    }
+  }
+  return result;
+}
+
+// Track the user's score
+var score = 0;
+// The delay between enemies (in milliseconds)
+var timeBetweenEnemies = 5 * 1000;
+// ID to track the spawn timeout
+var timeoutId = null;
+var level = 1;        
+
+// Show the game menu and instructions
+function menu() {
+  erase();
+  context.fillStyle = '#C0C0C0';
+  context.font = '36px Arial';
+  context.textAlign = 'center';
+  context.fillText('Shoot, Your Shot!', canvas.width / 2, canvas.height / 4);
+  context.font = '24px Arial';
+  context.fillText('Click to Start', canvas.width / 2, canvas.height / 2);
+  context.font = '18px Arial';
+  context.fillText(' Space to shoot, Up/Down to move.', canvas.width / 2, (canvas.height / 4) * 3);
+  // Start the game on a click
+  canvas.addEventListener('click', startGame);
+}
+
+// Start the game
+function startGame() {
+  // Kick off the enemy spawn interval
+  timeoutId = setInterval(makeEnemy, timeBetweenEnemies);
+  // Make the first enemy
+  setTimeout(makeEnemy, 1000);
+  // Kick off the draw loop
+  draw();
+  // Stop listening for click events
+  canvas.removeEventListener('click', startGame);
+}
+
+// Show the end game screen
+function endGame() {
+  // Stop the spawn interval
+  clearInterval(timeoutId);
+  // Show the final score
+  erase();
+  context.fillStyle = '#808080';
+  context.font = '24px Arial';
+  context.textAlign = 'center';
+  context.fillText('Game Over. Your Final Score: ' + score, canvas.width / 2, canvas.height / 2);
+    
+           
+  
+}
+
+// Listen for keydown events
+canvas.addEventListener('keydown', function(event) {
+  event.preventDefault();
+  if (event.keyCode === 38) { // UP
+    up = true;
+  }
+  if (event.keyCode === 40) { // DOWN
+    down = true;
+  }
+  if (event.keyCode === 32) { // SPACE
+    shoot();
+  }
+});
+
+// Listen for keyup events
+canvas.addEventListener('keyup', function(event) {
+  event.preventDefault();
+  if (event.keyCode === 38) { // UP 
+    up = false;
+  }
+  if (event.keyCode === 40) { // DOWN
+    down = false;
+  }
+});
+
+// Clear the canvas
+function erase() {
+  context.fillStyle = '#000000';
+  context.fillRect(0, 0, 600, 400);
+}
+
+// Shoot the bullet (if not already on screen)
+function shoot() {
+  if (!shooting) {
+    shooting = true;
+    bullet.x = player.x + player.l;
+    bullet.y = player.y + player.l / 2;
+  }
+}
+
+// The main draw loop
+function draw() {
+  erase();
+  var gameOver = false;
+  // Move and draw the enemies
+  enemies.forEach(function(enemy) {
+    enemy.x -= enemy.s;
+    if (enemy.x < 0) {
+      gameOver = true;
+    }
+    context.fillStyle = '#00FF00';
+    enemy.draw();
+  });
+  // Collide the player with enemies
+  enemies.forEach(function(enemy, i) {
+    if (isColliding(enemy, player)) {
+      gameOver = true;
+    }
+  });
+  // Move the player
+  if (down) {
+    player.y += player.s;
+  }
+  if (up) {
+    player.y -= player.s;
+  }
+  // Don't go out of bounds
+  if (player.y < 0) {
+    player.y = 0;
+  }
+  if (player.y > canvas.height - player.l) {
+    player.y = canvas.height - shplayerip.l;
+  }
+  // Draw the player
+  context.fillStyle = '#FF0000';
+  player.draw();
+  // Move and draw the bullet
+  if (shooting) {
+    // Move the bullet
+    bullet.x += bullet.s;
+    // Collide the bullet with enemies
+    enemies.forEach(function(enemy, i) {
+      if (isColliding(bullet, enemy)) {
+        enemies.splice(i, 1);
+        score++;
+        shooting = false;
+        // Make the game harder
+        if (score % 10 === 0 && timeBetweenEnemies > 1000) {
+          clearInterval(timeoutId);
+          timeBetweenEnemies -= 1000;
+          timeoutId = setInterval(makeEnemy, timeBetweenEnemies);
+     
+        } else if (score % 5 === 0) {
+          enemyBaseSpeed += 1;
+        }
+      }
+    });
+    // Collide with the wall
+    if (bullet.x > canvas.width) {
+      shooting = false;
+    }
+    // Draw the bullet
+    context.fillStyle = '#0000FF';
+    bullet.draw();
+  }
+  // Draw the score
+  context.fillStyle = '#FFFFFF';
+  context.font = '24px Arial';
+  context.textAlign = 'left';
+  context.fillText('Score: ' + score, 1, 25)
+    
+        context.fillStyle = '#76FF33';
+          context.font = '24px Arial';
+          context.textAlign = 'center';
+          context.fillText('Level ' + level, canvas.width / 2, canvas.height / 2);    
+  // End or continue the game
+  if (gameOver) {
+    endGame();
+  } else {
     window.requestAnimationFrame(draw);
-for (var i = 0; i < enemyTotal; i++) {
- enemies.push([enemy_x, enemy_y, enemy_w, enemy_h, speed]);
- enemy_x += enemy_w + 60;
-}
-
-//clearCanvas = myGameArea
-function clearCanvas() {
-
-  
-
- ctx.clearRect(0,0,width,height);
-}
-
-function drawEnemies() {
- for (var i = 0; i < enemies.length; i++) {
-                ctx.fillStyle = '#f00';
-   ctx.fillRect(enemies[i][0], enemies[i][1], enemy_w, enemy_h);
- }
-}
-
-function drawShip() {
- if (rightKey) ship_x += 5;
- else if (leftKey) ship_x -= 5;
- if (upKey) ship_y -= 5;
- else if (downKey) ship_y += 5;
- if (ship_x <= 0) ship_x = 0;
- if ((ship_x + ship_w) >= width) ship_x = width - ship_w;
-  if (ship_y <= 0) ship_y = 0;
- if ((ship_y + ship_h) >= height) ship_y = height - ship_h;
-  ctx.fillStyle = '#0f0';
-  ctx.fillRect(ship_x, ship_y, ship_w, ship_h);
-}
-
-function moveEnemies() {
-  for (var i = 0; i < enemies.length; i++) {
-   if (enemies[i][1] < height) {
-     enemies[i][1] += enemies[i][4];
-   } else if (enemies[i][1] > height - 1) {
-      enemies[i][1] = -45;
-    }
   }
 }
 
-function init() {
-  canvas = document.getElementById('canvas');
-  ctx = canvas.getContext('2d');
-  setInterval(gameLoop, 25);
-  document.addEventListener('keydown', keyDown, false);
-  document.addEventListener('keyup', keyUp, false);
-}
+// Start the game
+menu();
+canvas.focus();
 
-// Function for the score.
-
-function startGame()
-{
-  myScore = new component("30px", "Consolas", "red", 280, 40, "text");
-  myGameOver = new component("30px", "Consolas", "red", 280, 40, "text");
-   myGameArea.start();
-
-}
-
-function component(width, height, color, x, y, type)
-{
-
-this.type = type;
-this.score = 0;
-this.width = width;
-this.height = height;
-this.speedX = 0;
-this.speedY = 0;
-this.x = x;
-this.y = y;
-
-this.update = function(){
-
-  ctx = myGameArea.context;
-
-  if (this.type == "text")
-  {
-    ctx.font = this.width + " " + this.height;
-    ctx.fillStyle = color;
-    ctx.fillText(this.text, this.x, this.y);
-
-  }
-}
-
-this.crashWith = function(otherobj)
-{
-  var myleft = this.x;
-  var myright = this.x + (this.width);
-  var mytop = this.y;
-  var mybottom = this.y + (this.height);
-  var otherleft = otherobj.x;
-  var otherright = otherobj.x + (otherobj.width);
-  var othertop = otherobj.y;
-  var otherbottom = otherobj.y + (otherobj.height);
-
-  var crash = true;
-  if ((mybottm < othertop ) || (mytop > otherbottm) || (myright < otherleft) || (myleft > otherright))
-  {
-
-    crash = false;
-  }
-
-  //myScore.text = "SCORE:" + 
-
-  return crash;
-}
-
-  // else {
-
-  //   ctx.fillStyle = color;
-  //   ctx.fillRect(this.x, this.y, this.width, this.height);
-  // }
-}
-
-//  Function for Collison Detection
-
-    function collisionDetection()
-    {
-        
-        for(var c = 0; c<)
-    }
-    
-  // Adding the Lives function          
-    
-    function drawLives()
-            
-       {
-
-        ctx.font = "16px Arial";
-        ctx.textAlign = ' center' ;     
-        ctx.fillStyle = "0095DD";
-        ctx.fillText("Life: " +lives, 20, 20);
-        
-    }     
-    
-   
-// Adding the Score Function
-
-    
-function drawScore()
-    {
-        
-//         ctx.beginPath();
-//         ctx.moveTo(x,0);
-//         ctx.lineTo(x, canvas.height);
-//         ctx.stroke();
-
-        ctx.font = "16px Arial";
-    
-        ctx.textAlign = 'end ';
-        ctx.fillStyle = "0095DD";
-        ctx.fillText("Score: " +score, canvas.width-65, 20);
-  
-        
-        
-//          ctx.font = "16px Arial";
-//         ctx.textAlign = ' center' ;     
-//         ctx.fillStyle = "0095DD";
-//         ctx.fillText("Life: " +lives, 8, 20);
-    }
-function gameLoop() {
-  clearCanvas();
-  moveEnemies();
-  drawEnemies();
-  drawShip();
-  drawScore();  
-  drawLives();  
-   // draw();
-}
-
-function keyDown(e) {
-  if (e.keyCode == 39) rightKey = true;
-  else if (e.keyCode == 37) leftKey = true;
-  if (e.keyCode == 38) upKey = true;
-  else if (e.keyCode == 40) downKey = true;
-}
-
-function keyUp(e) {
-  if (e.keyCode == 39) rightKey = false;
-  else if (e.keyCode == 37) leftKey = false;
-  if (e.keyCode == 38) upKey = false;
-  else if (e.keyCode == 40) downKey = false;
-}
-
-window.onload = init;
-</script>
-</head>
-
-
-</body>
+    </script>
+     </head>
+  </body>
 </html>
+
