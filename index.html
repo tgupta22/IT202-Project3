@@ -46,6 +46,8 @@ function makeSquare(x, y, length, speed) {
     }
   };
 }
+        var myGamePiece;
+      
 
 // The player the user controls
 var player = makeSquare(50, canvas.height / 2 - 25, 50, 5);
@@ -95,7 +97,8 @@ var score = 0;
 var timeBetweenEnemies = 5 * 1000;
 // ID to track the spawn timeout
 var timeoutId = null;
-var level = 1;        
+var level = 1;    
+var lives = 1;        
 
 // Show the game menu and instructions
 function menu() {
@@ -133,8 +136,8 @@ function endGame() {
   context.fillStyle = '#808080';
   context.font = '24px Arial';
   context.textAlign = 'center';
-  context.fillText('Game Over. Your Final Score: ' + score, canvas.width / 2, canvas.height / 2);
-    
+  context.fillText('Game Over.  No Lives Left.   Your Final Score: ' + score, canvas.width / 2, canvas.height / 2);
+ 
            
   
 }
@@ -250,10 +253,18 @@ function draw() {
   context.textAlign = 'left';
   context.fillText('Score: ' + score, 1, 25)
     
-        context.fillStyle = '#76FF33';
-          context.font = '24px Arial';
-          context.textAlign = 'center';
-          context.fillText('Level ' + level, canvas.width / 2, canvas.height / 2);    
+  context.fillStyle = '#76FF33';
+  context.font = '24px Arial';
+  context.textAlign = 'right';
+  context.fillText('Level: ' + level, canvas.width / 2, canvas.height / 2); 
+    
+    
+      context.fillStyle = '#ff3399';
+      context.font = '24px Arial';
+      context.textAlign = 'left';
+     
+      context.fillText('                         Lives: ' + lives, canvas.width / 2, canvas.height / 2); 
+    
   // End or continue the game
   if (gameOver) {
     endGame();
